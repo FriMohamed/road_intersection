@@ -19,13 +19,12 @@ pub enum TurnDirection {
 pub struct Vehicle {
     pub x: f32,
     pub y: f32,
-    size: f32,
-    speed: f32,
-    color: Color,
-    pub can_move: bool,
-    is_dir_changed: bool,
-    turn_dir: TurnDirection,
-    incoming_dir: IncomingDirection
+    pub size: f32,
+    pub speed: f32,
+    pub color: Color,
+    pub is_dir_changed: bool,
+    pub turn_dir: TurnDirection,
+    pub incoming_dir: IncomingDirection
 }
 
 use IncomingDirection::*;
@@ -49,7 +48,6 @@ impl Vehicle {
             y,
             size: vehicle_size,
             speed: speed,
-            can_move: true,
             is_dir_changed: false,
             color: turn_dir_and_color.0,
             turn_dir: turn_dir_and_color.1,
@@ -78,10 +76,24 @@ impl Vehicle {
 
     }
 
-    pub fn mo_ve(&mut self, width: f32, height: f32, lane_width: f32) {
-        // if self.is_on_intersec_line(width, height, lane_width) {
-        //     self.can_move = false 
-        // }
+    fn is_colliding(&self, b: &Self) bool {
+        match self.incoming_dir {
+            South => self.x < b.x + b.size && self.x + self.size > b.x && self.y - self.speed < b.y + b.size && self.y + self.size > b.y,
+            North => self.x < b.x + b.size && self.x + self.size > b.x && self.y + self.speed < b.y + b.size && self.y + self.size > b.y,
+            East => self.y < b.y + b.size && self.y + self.size > b.y && self.x + self.size + self.speed > b.x && self.x < b.x + b.size,
+            West => self.y < b.y + b.size && self.y + self.size > b.y && self.x + self.size - self.speed > b.x && self.x < b.x + b.size
+        }
+    }
+
+    pub fn mo_ve(&mut self, width: f32, height: f32, lane_width: f32, vehicles: &Vec<Vehicle>) {
+        let red_light = false;
+        if (self.is_on_intersec_line(width, height, lane_width) && red_light)
+            || vehicles.iter().any(|vehicle| self.is_colliding(vehicle))
+        {
+            return
+        }
+
+        
 
         if !self.is_dir_changed && self.is_on_turn_pos(width, height, lane_width) {
             self.turn();
@@ -162,12 +174,4 @@ impl Vehicle {
     pub fn draw(&self) {
         draw_rectangle(self.x, self.y, self.size, self.size, self.color);
     }
-}
-
-pub fn update_movement_possibility(vehicles: &mut Vec<Vehicle>) {
-    // vehicles.iter_mut().for_each(|vehicle| {
-    //     match vehicle.incoming_dir {
-    //         South => 
-    //     }
-    // });
 }

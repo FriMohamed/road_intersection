@@ -42,9 +42,10 @@ async fn main() {
             vehicles.push(Vehicle::random(width, height, lane_width, speed));
         }
 
+        let vehicles_clone = vehicles.clone();
         vehicles.iter_mut().for_each(|vehicle| {
             vehicle.draw();
-            vehicle.mo_ve(width, height, lane_width);
+            vehicle.mo_ve(width, height, lane_width, &vehicles_clone);
         });
 
         draw_roads(width, height, lane_width);
