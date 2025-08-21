@@ -1,6 +1,6 @@
 use macroquad::{color::Color, shapes::{draw_rectangle}};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IncomingDirection {
     North,
     South,
@@ -8,7 +8,7 @@ pub enum IncomingDirection {
     West,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TurnDirection {
     Left,
     Forward,
@@ -30,7 +30,6 @@ pub struct Vehicle {
 use IncomingDirection::*;
 use TurnDirection::*;
 
-use crate::vehicle;
 impl Vehicle {
     pub fn new(width: f32, height: f32, lane_width: f32, speed: f32, incoming_dir: IncomingDirection) -> Self {
         let vehicle_size = 0.8 * lane_width;
@@ -76,45 +75,42 @@ impl Vehicle {
 
     }
 
-    fn is_colliding(&self, b: &Self) bool {
+    fn is_will_colliding(&self, b: &Self) -> bool {
+        let safty_gap = 5.0;
         match self.incoming_dir {
-            South => self.x < b.x + b.size && self.x + self.size > b.x && self.y - self.speed < b.y + b.size && self.y + self.size > b.y,
-            North => self.x < b.x + b.size && self.x + self.size > b.x && self.y + self.speed < b.y + b.size && self.y + self.size > b.y,
-            East => self.y < b.y + b.size && self.y + self.size > b.y && self.x + self.size + self.speed > b.x && self.x < b.x + b.size,
-            West => self.y < b.y + b.size && self.y + self.size > b.y && self.x + self.size - self.speed > b.x && self.x < b.x + b.size
+            South => self.x < b.x + b.size && self.x + self.size > b.x && self.y - self.speed - safty_gap < b.y + b.size && self.y + self.size > b.y,
+            North => self.x < b.x + b.size && self.x + self.size > b.x && self.y < b.y + b.size && self.y + self.size + self.speed + safty_gap > b.y,
+            East => self.y < b.y + b.size && self.y + self.size > b.y && self.x + self.size + self.speed + safty_gap > b.x && self.x < b.x + b.size,
+            West => self.y < b.y + b.size && self.y + self.size > b.y && self.x + self.size > b.x && self.x - self.speed - self.size - safty_gap < b.x
         }
     }
 
-    pub fn mo_ve(&mut self, width: f32, height: f32, lane_width: f32, vehicles: &Vec<Vehicle>) {
-        let red_light = false;
-        if (self.is_on_intersec_line(width, height, lane_width) && red_light)
-            || vehicles.iter().any(|vehicle| self.is_colliding(vehicle))
+    pub fn mo_ve(&mut self, width: f32, height: f32, lane_width: f32, vehicles: &Vec<Vehicle>, veh_ind: usize, light: IncomingDirection) {
+        if (self.is_on_intersec_line(width, height, lane_width) && light != self.incoming_dir)
+            || vehicles.iter().enumerate().any(|(i, vehicle)| i != veh_ind && self.is_will_colliding(vehicle))
         {
             return
         }
-
-        
 
         if !self.is_dir_changed && self.is_on_turn_pos(width, height, lane_width) {
             self.turn();
         }
         
-        if self.can_move {
-            match self.incoming_dir {
-                East => self.x += self.speed,
-                West => self.x -= self.speed,
-                North => self.y += self.speed,
-                South => self.y -= self.speed
-            }
+        match self.incoming_dir {
+            East => self.x += self.speed,
+            West => self.x -= self.speed,
+            North => self.y += self.speed,
+            South => self.y -= self.speed
         }
+        
     }
 
     fn is_on_intersec_line(&self, width: f32, height: f32, lane_width: f32) -> bool {
         match self.incoming_dir {
-            North => self.y + self.size + self.speed >= (height / 2.0) - lane_width,
-            South => self.y - self.speed <= (height / 2.0) + lane_width,
-            East => self.x + self.size + self.speed >= (width / 2.0) - lane_width,
-            West => self.x - self.speed <= (width / 2.0) + lane_width
+            North => ((self.y + self.size ) - ((height / 2.0) - lane_width)).abs() <= 1.0 ,
+            South => ((self.y - self.speed) - ((height / 2.0) + lane_width)).abs() <= 1.0,
+            East => ((self.x + self.size + self.speed) - ((width / 2.0) - lane_width)).abs() <= 1.0 ,
+            West => ((self.x - self.speed) - ((width / 2.0) + lane_width)).abs() <= 1.0 
         }
     }
 
